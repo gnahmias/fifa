@@ -1,14 +1,20 @@
-import Image from 'next/image';
+'use client';
+
+import { useState } from 'react';
 import { StandingRow } from '@/lib/types';
 
-interface Props {
-  rows: StandingRow[];
+function TeamBadge({ badge, name }: { badge: string; name: string }) {
+  const [imgOk, setImgOk] = useState(true);
+  const initials = name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2);
+  const colors = ['#2563eb','#16a34a','#dc2626','#9333ea','#d97706','#0891b2','#be185d'];
+  const color = colors[(name.charCodeAt(0) || 0) % colors.length];
+  if (!badge) return <div style={{ width: 20, height: 20, borderRadius: '50%', background: color, flexShrink: 0, fontSize: 8, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{initials}</div>;
+  if (imgOk) return <img src={badge} alt={name} width={20} height={20} style={{ width: 20, height: 20, objectFit: 'contain', flexShrink: 0 }} onError={() => setImgOk(false)} />; // eslint-disable-line @next/next/no-img-element
+  return <div style={{ width: 20, height: 20, borderRadius: '50%', background: color, flexShrink: 0, fontSize: 8, fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{initials}</div>;
 }
 
-export default function StandingsTable({ rows }: Props) {
-  if (rows.length === 0) {
-    return <p className="text-gray-400 text-sm">Todavía no hay datos de posiciones.</p>;
-  }
+export default function StandingsTable({ rows }: { rows: StandingRow[] }) {
+  if (rows.length === 0) return <p className="text-gray-400 text-sm">Todavía no hay datos de posiciones.</p>;
 
   return (
     <div className="overflow-x-auto rounded-lg border border-gray-700 -mx-1">
@@ -33,28 +39,13 @@ export default function StandingsTable({ rows }: Props) {
             const rowBg = idx % 2 === 0 ? 'bg-gray-900' : 'bg-gray-800/40';
             return (
               <tr key={row.participant.id} className={`${rowBg} border-t border-gray-700/40`}>
-                <td className="px-2 py-2.5 text-center">
-                  <span className={`font-bold text-sm ${posColor}`}>{idx + 1}</span>
-                </td>
+                <td className="px-2 py-2.5 text-center"><span className={`font-bold text-sm ${posColor}`}>{idx + 1}</span></td>
                 <td className="px-3 py-2.5">
                   <div className="flex items-center gap-2">
-                    {row.participant.teamBadge ? (
-                      <Image
-                        src={row.participant.teamBadge}
-                        alt={row.participant.teamName}
-                        width={20}
-                        height={20}
-                        className="object-contain shrink-0"
-                        unoptimized
-                      />
-                    ) : (
-                      <div className="w-5 h-5 rounded-full bg-gray-700 shrink-0" />
-                    )}
+                    <TeamBadge badge={row.participant.teamBadge} name={row.participant.teamName || row.participant.name} />
                     <div className="min-w-0">
                       <div className="font-semibold text-white text-sm truncate">{row.participant.name}</div>
-                      {row.participant.teamName && (
-                        <div className="text-xs text-gray-500 truncate hidden sm:block">{row.participant.teamName}</div>
-                      )}
+                      {row.participant.teamName && <div className="text-xs text-gray-500 truncate hidden sm:block">{row.participant.teamName}</div>}
                     </div>
                   </div>
                 </td>
