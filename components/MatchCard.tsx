@@ -10,13 +10,13 @@ interface Props {
   onSave: (matchId: string, homeGoals: number, awayGoals: number) => void;
 }
 
-function findParticipant(participants: Participant[], id: string): Participant | undefined {
+function find(participants: Participant[], id: string) {
   return participants.find((p) => p.id === id);
 }
 
 export default function MatchCard({ match, participants, onSave }: Props) {
-  const home = findParticipant(participants, match.homeId);
-  const away = findParticipant(participants, match.awayId);
+  const home = find(participants, match.homeId);
+  const away = find(participants, match.awayId);
 
   const [editing, setEditing] = useState(false);
   const [hg, setHg] = useState(match.homeGoals?.toString() ?? '');
@@ -32,55 +32,46 @@ export default function MatchCard({ match, participants, onSave }: Props) {
     setEditing(false);
   };
 
-  const resultLabel = match.played
-    ? `${match.homeGoals} - ${match.awayGoals}`
-    : 'Pendiente';
-
-  const getOutcomeClass = (side: 'home' | 'away') => {
-    if (!match.played) return '';
+  const outcomeClass = (side: 'home' | 'away') => {
+    if (!match.played) return 'text-white';
     if (match.homeGoals === match.awayGoals) return 'text-yellow-400';
-    if (side === 'home' && match.homeGoals! > match.awayGoals!) return 'text-green-400';
-    if (side === 'away' && match.awayGoals! > match.homeGoals!) return 'text-green-400';
-    return 'text-red-400';
+    const won = side === 'home' ? match.homeGoals! > match.awayGoals! : match.awayGoals! > match.homeGoals!;
+    return won ? 'text-green-400' : 'text-gray-400';
   };
 
   return (
-    <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
-      <div className="flex items-center gap-3">
+    <div className="bg-gray-800 border border-gray-700 rounded-lg p-3">
+      <div className="flex items-center gap-2">
         {/* Home */}
-        <div className={`flex-1 flex flex-col items-center gap-1 ${getOutcomeClass('home')}`}>
-          {home.teamBadge && (
-            <Image src={home.teamBadge} alt={home.teamName} width={40} height={40} className="object-contain" unoptimized />
+        <div className={`flex-1 flex flex-col items-center gap-1 ${outcomeClass('home')}`}>
+          {home.teamBadge ? (
+            <Image src={home.teamBadge} alt={home.teamName} width={36} height={36} className="object-contain" unoptimized />
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-gray-700 flex items-center justify-center text-gray-400 text-xs">?</div>
           )}
-          <span className="text-xs font-bold text-center leading-tight">{home.name}</span>
-          <span className="text-xs text-gray-400">{home.teamName}</span>
+          <span className="text-xs font-bold text-center leading-tight line-clamp-2">{home.name}</span>
+          {home.teamName && <span className="text-xs text-gray-500 text-center leading-tight line-clamp-1">{home.teamName}</span>}
         </div>
 
-        {/* Score / Edit */}
-        <div className="flex flex-col items-center gap-2 min-w-[90px]">
+        {/* Score */}
+        <div className="flex flex-col items-center gap-1.5 min-w-[80px]">
           {editing ? (
             <div className="flex items-center gap-1">
               <input
-                type="number"
-                min={0}
-                max={99}
-                value={hg}
+                type="number" min={0} max={99} value={hg}
                 onChange={(e) => setHg(e.target.value)}
-                className="w-10 text-center bg-gray-700 border border-gray-600 rounded text-white text-sm py-1"
+                className="w-10 text-center bg-gray-700 border border-gray-600 rounded text-white text-sm py-1 focus:outline-none focus:border-green-500"
               />
-              <span className="text-gray-400">-</span>
+              <span className="text-gray-400 text-sm">-</span>
               <input
-                type="number"
-                min={0}
-                max={99}
-                value={ag}
+                type="number" min={0} max={99} value={ag}
                 onChange={(e) => setAg(e.target.value)}
-                className="w-10 text-center bg-gray-700 border border-gray-600 rounded text-white text-sm py-1"
+                className="w-10 text-center bg-gray-700 border border-gray-600 rounded text-white text-sm py-1 focus:outline-none focus:border-green-500"
               />
             </div>
           ) : (
-            <span className={`text-lg font-black ${match.played ? 'text-white' : 'text-gray-500'}`}>
-              {resultLabel}
+            <span className={`text-lg font-black ${match.played ? 'text-white' : 'text-gray-600'}`}>
+              {match.played ? `${match.homeGoals} - ${match.awayGoals}` : 'vs'}
             </span>
           )}
 
@@ -90,7 +81,7 @@ export default function MatchCard({ match, participants, onSave }: Props) {
                 onClick={handleSave}
                 className="text-xs bg-green-600 hover:bg-green-500 text-white px-2 py-0.5 rounded font-medium"
               >
-                Guardar
+                ✓
               </button>
               <button
                 onClick={() => { setEditing(false); setHg(match.homeGoals?.toString() ?? ''); setAg(match.awayGoals?.toString() ?? ''); }}
@@ -102,7 +93,11 @@ export default function MatchCard({ match, participants, onSave }: Props) {
           ) : (
             <button
               onClick={() => { setEditing(true); setHg(match.homeGoals?.toString() ?? ''); setAg(match.awayGoals?.toString() ?? ''); }}
-              className="text-xs bg-blue-700 hover:bg-blue-600 text-white px-3 py-0.5 rounded font-medium"
+              className={`text-xs font-semibold px-3 py-1 rounded transition-colors ${
+                match.played
+                  ? 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                  : 'bg-blue-700 hover:bg-blue-600 text-white'
+              }`}
             >
               {match.played ? 'Editar' : 'Cargar'}
             </button>
@@ -110,12 +105,14 @@ export default function MatchCard({ match, participants, onSave }: Props) {
         </div>
 
         {/* Away */}
-        <div className={`flex-1 flex flex-col items-center gap-1 ${getOutcomeClass('away')}`}>
-          {away.teamBadge && (
-            <Image src={away.teamBadge} alt={away.teamName} width={40} height={40} className="object-contain" unoptimized />
+        <div className={`flex-1 flex flex-col items-center gap-1 ${outcomeClass('away')}`}>
+          {away.teamBadge ? (
+            <Image src={away.teamBadge} alt={away.teamName} width={36} height={36} className="object-contain" unoptimized />
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-gray-700 flex items-center justify-center text-gray-400 text-xs">?</div>
           )}
-          <span className="text-xs font-bold text-center leading-tight">{away.name}</span>
-          <span className="text-xs text-gray-400">{away.teamName}</span>
+          <span className="text-xs font-bold text-center leading-tight line-clamp-2">{away.name}</span>
+          {away.teamName && <span className="text-xs text-gray-500 text-center leading-tight line-clamp-1">{away.teamName}</span>}
         </div>
       </div>
     </div>

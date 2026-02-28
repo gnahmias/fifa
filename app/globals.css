@@ -8,3 +8,10 @@ body {
   background-color: #030712;
   color: #f9fafb;
 }
+
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
