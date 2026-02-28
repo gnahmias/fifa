@@ -90,6 +90,14 @@ export default function ParticipantesPage() {
     setEditingTeamFor(null);
   };
 
+  const clearTeam = async (participantId: string) => {
+    const participants = tournament.participants.map((p) =>
+      p.id === participantId ? { ...p, teamId: '', teamName: '', teamBadge: '' } : p
+    );
+    await save({ ...tournament, participants });
+    setEditingTeamFor(null);
+  };
+
   const handleGenerateFixture = async () => {
     if (tournament.participants.length < 2) { alert('Necesitás al menos 2 participantes.'); return; }
     if (tournament.matches.length > 0 && !confirm('Ya existe un fixture. ¿Regenerarlo? Se perderán los resultados.')) return;
@@ -169,7 +177,7 @@ export default function ParticipantesPage() {
               {editingTeamFor === p.id && (
                 <div className="px-3 pb-3 pt-2 border-t border-gray-700">
                   <TeamSearch
-                    onSelect={(team) => team.name ? assignTeam(p.id, team) : setEditingTeamFor(null)}
+                    onSelect={(team) => team.name ? assignTeam(p.id, team) : clearTeam(p.id)}
                     selected={p.teamName ? { teamName: p.teamName, teamBadge: p.teamBadge } : null}
                     placeholder="Buscar equipo para este jugador…"
                   />

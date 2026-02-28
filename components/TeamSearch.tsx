@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import { searchTeams, FifaTeam, POPULAR_TEAMS } from '@/lib/teams';
+import { searchTeams } from '@/lib/teams';
 
 export interface TeamResult {
   id: string;
@@ -54,14 +54,13 @@ function TeamBadge({ badge, name, size = 28 }: { badge: string; name: string; si
 export default function TeamSearch({ onSelect, selected, placeholder = 'Buscar equipo…' }: Props) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [apiResults, setApiResults] = useState<TeamResult[]>([]);
   const [apiLoading, setApiLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Local search from curated list
   const localResults = searchTeams(query);
 
-  // API search (TheSportsDB via proxy — works in production on Vercel)
   const searchApi = useCallback(async (q: string) => {
     if (q.length < 2) { setApiResults([]); return; }
     setApiLoading(true);
@@ -99,15 +98,29 @@ export default function TeamSearch({ onSelect, selected, placeholder = 'Buscar e
     setQuery('');
     setOpen(false);
     setApiResults([]);
+    setEditing(false);
   };
 
-  const clear = () => {
-    onSelect({ id: '', name: '', badge: '', league: '' });
+  // "cambiar": just enter search mode — does NOT notify parent
+  const cambiar = () => {
+    setEditing(true);
     setQuery('');
+    setOpen(false);
     setApiResults([]);
   };
 
-  // Merge: API results take priority, then fill with local (deduplicated by name)
+  // "quitar": actually clear the team — notifies parent with empty team
+  const quitar = () => {
+    onSelect({ id: '', name: '', badge: '', league: '' });
+    setEditing(false);
+  };
+
+  const cancelar = () => {
+    setEditing(false);
+    setQuery('');
+    setOpen(false);
+  };
+
   const apiNames = new Set(apiResults.map((t) => t.name.toLowerCase()));
   const merged = [
     ...apiResults,
@@ -117,27 +130,51 @@ export default function TeamSearch({ onSelect, selected, placeholder = 'Buscar e
   ].slice(0, 10);
 
   const showDropdown = open && query.length >= 1;
+  const showSelected = !!(selected?.teamName) && !editing;
 
   return (
     <div style={{ position: 'relative' }}>
-      {selected?.teamName ? (
+      {showSelected ? (
         <div className="flex items-center gap-2 p-2 bg-gray-700 rounded border border-gray-600">
-          <TeamBadge badge={selected.teamBadge} name={selected.teamName} size={26} />
-          <span className="text-sm text-white font-medium flex-1 truncate">{selected.teamName}</span>
-          <button type="button" onClick={clear} className="text-gray-400 hover:text-red-400 text-xs ml-1 whitespace-nowrap">
-            ✕ cambiar
+          <TeamBadge badge={selected!.teamBadge} name={selected!.teamName} size={26} />
+          <span className="text-sm text-white font-medium flex-1 truncate">{selected!.teamName}</span>
+          <button
+            type="button"
+            onClick={cambiar}
+            className="text-gray-400 hover:text-blue-400 text-xs px-1.5 py-0.5 rounded hover:bg-gray-600 whitespace-nowrap transition-colors"
+          >
+            ✏️ cambiar
+          </button>
+          <button
+            type="button"
+            onClick={quitar}
+            className="text-gray-400 hover:text-red-400 text-xs px-1.5 py-0.5 rounded hover:bg-gray-600 whitespace-nowrap transition-colors"
+          >
+            ✕ quitar
           </button>
         </div>
       ) : (
-        <input
-          type="text"
-          value={query}
-          onChange={handleChange}
-          onFocus={() => setOpen(true)}
-          onBlur={() => setTimeout(() => setOpen(false), 150)}
-          placeholder={placeholder}
-          className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm placeholder-gray-400 focus:outline-none focus:border-green-500"
-        />
+        <>
+          <input
+            type="text"
+            value={query}
+            onChange={handleChange}
+            onFocus={() => setOpen(true)}
+            onBlur={() => setTimeout(() => setOpen(false), 150)}
+            placeholder={placeholder}
+            autoFocus={editing}
+            className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm placeholder-gray-400 focus:outline-none focus:border-green-500"
+          />
+          {editing && selected?.teamName && (
+            <button
+              type="button"
+              onClick={cancelar}
+              className="text-xs text-gray-500 hover:text-gray-300 mt-1 block transition-colors"
+            >
+              ← Cancelar
+            </button>
+          )}
+        </>
       )}
 
       {showDropdown && (
